@@ -1,3 +1,40 @@
+var BackLog = function() {
+  this.flushes = [];
+};
+
+BackLog.prototype.report = function() {
+  var self = this;
+  this.flushes.forEach(function (f) {
+    var groupName = "Backburner Flush: " + f.ms + "ms";
+    console.group(groupName);
+    f.items.forEach(function (item) {
+      if (item.ms > 0) {
+        console.log(item.queueName + ": " + item.ms + "ms");
+      }      
+    });
+    console.groupEnd(groupName);
+  })
+};
+
+var BackLogItem = function(queueName, ms) {
+  this.queueName = queueName;
+  this.ms = ms;
+};
+
+var BackLogFlush = function() {
+  this.start = new Date().getTime();
+  this.items = [];
+};
+
+BackLogFlush.prototype.log = function(backLogItem) {
+  this.items.push(backLogItem);
+};
+
+BackLogFlush.prototype.end = function() {
+  this.ms = new Date().getTime() - this.start;
+};
+var backLog = new BackLog();
+
 define("backburner/queue",
   ["exports"],
   function(__exports__) {
@@ -149,6 +186,8 @@ define("backburner/deferred_action_queues",
             queueName, queue, queueItems, priorQueueNameIndex,
             queueNameIndex = 0, numberOfQueues = queueNames.length;
 
+        var flush = new BackLogFlush();
+
         outerloop:
         while (queueNameIndex < numberOfQueues) {
           queueName = queueNames[queueNameIndex];
@@ -171,6 +210,8 @@ define("backburner/deferred_action_queues",
 
             if (typeof method === 'string') { method = target[method]; }
 
+            var t2 = new Date().getTime();
+
             // method could have been nullified / canceled during flush
             if (method) {
               // TODO: error handling
@@ -181,6 +222,9 @@ define("backburner/deferred_action_queues",
               }
             }
 
+            var d = new Date().getTime() - t2;
+         
+            flush.log(new BackLogItem(queueName, d));
             queueIndex += 4;
           }
           queue._queueBeingFlushed = null;
@@ -193,6 +237,8 @@ define("backburner/deferred_action_queues",
 
           queueNameIndex++;
         }
+        flush.end();        
+        backLog.flushes.push(flush);
       }
     };
 
@@ -232,6 +278,7 @@ define("backburner",
       if (!this.options.defaultQueue) {
         this.options.defaultQueue = queueNames[0];
       }
+      this.backLog = backLog;
       this.instanceStack = [];
     }
 
