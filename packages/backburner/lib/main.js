@@ -1,4 +1,4 @@
-define("backburner", 
+define("backburner",
   ["backburner/deferred_action_queues","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
@@ -522,7 +522,7 @@ define("backburner",
 
     __exports__.Backburner = Backburner;
   });
-define("backburner/deferred_action_queues", 
+define("backburner/deferred_action_queues",
   ["backburner/queue","exports"],
   function(__dependency1__, __exports__) {
     "use strict";
@@ -646,7 +646,7 @@ define("backburner/deferred_action_queues",
 
     __exports__.DeferredActionQueues = DeferredActionQueues;
   });
-define("backburner/queue", 
+define("backburner/queue",
   ["exports"],
   function(__exports__) {
     "use strict";
