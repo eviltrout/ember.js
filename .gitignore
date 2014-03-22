@@ -2,6 +2,8 @@ packages/container
 packages/ember-metal
 packages/ember-metal-views
 packages/ember-metal-htmlbars
+packages/ember-htmlbars
+packages/ember-htmlbars-compiler
 packages/ember-runtime
 packages/ember-debug
 packages/ember-views
