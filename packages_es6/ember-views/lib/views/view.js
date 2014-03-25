@@ -56,6 +56,7 @@ import {
 import jQuery from "ember-views/system/jquery";
 import "ember-views/system/ext";  // for the side effect of extending Ember.run.queues
 import merge from "ember-metal/merge";
+import {meta} from "ember-metal/utils";
 
 var MetalView = requireModule('ember-metal-views');
 
@@ -1249,7 +1250,7 @@ var View = CoreView.extend({
     this.rerender();
 
     this.forEachChildView(function(view) {
-      view.propertyDidChange('controller');
+      propertyDidChange(view, 'controller');
     });
   }),
 
@@ -1266,9 +1267,15 @@ var View = CoreView.extend({
 
   // FIXME: this is a hack to get tests passing`
   beforeTemplate: function() {
-    var view = this;
+    var view = this,
+        templateOptions = view.templateOptions || (view._parentView && view._parentView.templateOptions) || view.constructor.templateOptions;
 
-    this.templateOptions.data.buffer = {
+    if (!templateOptions) {
+      console.assert(false, "missing templateOptions");
+      // this.templateOptions = $.extend(true, {}, meta(this.constructor).templateOptions);
+    }
+
+    templateOptions.data.buffer = {
       push: function(str) {
         view.element.innerHTML += str;
       }
@@ -2188,6 +2195,8 @@ var View = CoreView.extend({
     @method destroy
   */
   destroy: function() {
+    return MetalView.destroy(this);
+    
     var childViews = this._childViews,
         // get parentView before calling super because it'll be destroyed
         nonVirtualParentView = get(this, 'parentView'),
@@ -2358,7 +2367,7 @@ var View = CoreView.extend({
 
     if (children !== false) {
       this.forEachChildView(function(view) {
-        view.transitionTo(state);
+        if (view.transitionTo) { view.transitionTo(state); }
       });
     }
   },
