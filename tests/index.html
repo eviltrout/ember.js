@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Ember</title>
+    <link rel="stylesheet" href="/qunit/qunit.css">
+    <script src="/qunit/qunit.js"></script>
+    <script src="/tests/qunit_configuration.js"></script>
+    <script src="/handlebars/handlebars.js"></script>
+
+    <script type="text/javascript">
+      window.loadScript = function(url) {
+        document.write(unescape('%3Cscript src="'+url+'"%3E%3C/script%3E'));
+      };
+    </script>
+
+    <script type="text/javascript">
+      // Load custom version of jQuery if possible (assign to window so IE8 can use in later blocks)
+      var jQueryVersion = QUnit.urlParams.jquery;
+      if (jQueryVersion) {
+        loadScript('https://code.jquery.com/jquery-'+jQueryVersion+'.js');
+      }
+      // Close the script tag to make sure document.write happens
+    </script>
+
+    <script type="text/javascript">
+      // Fallback to default jQuery
+      if (jQueryVersion !== 'none' && !window.jQuery) {
+        loadScript('/jquery/jquery.js');
+      }
+      // Close the script tag to make sure document.write happens
+    </script>
+
+    <script src="/tests/ember_configuration.js"></script>
+    <script src="/dist/ember-tests.js"></script>
+    <script>
+      var packages = (QUnit.urlParams.package || "*").split(",");
+      var packageRegexp   = new RegExp('^('+packages.join('|')+')/');
+
+
+      for (var moduleName in Ember.__loader.registry) {
+        if (moduleName.match(packageRegexp) && moduleName.match(/_test$/)) {
+          requireModule(moduleName);
+        }
+      }
+    </script>
+  </head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+</body>
+</html>
