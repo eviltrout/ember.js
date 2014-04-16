@@ -1,7 +1,6 @@
 var fs  = require('fs');
 var pickFiles = require('broccoli-static-compiler');
 var compileES6 = require('broccoli-es6-concatenator');
-var findBowerTrees = require('broccoli-bower');
 var mergeTrees = require('broccoli-merge-trees');
 var defeatureify = require('broccoli-defeatureify');
  
