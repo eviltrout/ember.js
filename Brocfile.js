@@ -131,7 +131,7 @@ var packagesJs = compileES6(sourceTrees, {
 var testsJs = compileES6(sourceTrees, {
   loaderFile: 'loader/main.js',
   ignoredModules: [ ],
-  inputFiles: [ 'packages_es6/**/tests/**/*.js' ],
+  inputFiles: [ 'packages_es6/**/*.js' ],
   legacyFilesToAppend: legacyFilesToAppend,
   wrapInEval: true,
   outputFile: '/dist/ember-tests.js',
