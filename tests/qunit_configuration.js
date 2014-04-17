@@ -1,85 +1,47 @@
 (function() {
-  window.EmberDev = window.EmberDev || {};
+  window.EmberDev = window.EmberDev || { assertions: {}, deprecations: {} };
+
+  EmberDev.assertions.noViewsRemain = function(){
+    if (Ember && Ember.View) {
+      var viewIds = [], id;
+      for (id in Ember.View.views) {
+        if (Ember.View.views[id] != null) {
+          viewIds.push(id);
+        }
+      }
+
+      if (viewIds.length > 0) {
+        deepEqual(viewIds, [], "Ember.View.views should be empty");
+        Ember.View.views = [];
+      }
+    }
+  };
+
+  EmberDev.assertions.noTemplatesRemain = function(){
+    if (Ember && Ember.TEMPLATES) {
+      var templateNames = [], name;
+      for (name in Ember.TEMPLATES) {
+        if (Ember.TEMPLATES[name] != null) {
+          templateNames.push(name);
+        }
+      }
+
+      if (templateNames.length > 0) {
+        deepEqual(templateNames, [], "Ember.TEMPLATES should be empty");
+        Ember.TEMPLATES = {};
+      }
+    }
+  };
+
+  EmberDev.assertions.noExpectedDeprecations = function(){
+    window.assertDeprecation();
+  };
 
   EmberDev.afterEach = function() {
-      if (Ember && Ember.View) {
-        var viewIds = [], id;
-        for (id in Ember.View.views) {
-          if (Ember.View.views[id] != null) {
-            viewIds.push(id);
-          }
-        }
-
-        if (viewIds.length > 0) {
-          deepEqual(viewIds, [], "Ember.View.views should be empty");
-          Ember.View.views = [];
-        }
-      }
-
-      if (Ember && Ember.TEMPLATES) {
-        var templateNames = [], name;
-        for (name in Ember.TEMPLATES) {
-          if (Ember.TEMPLATES[name] != null) {
-            templateNames.push(name);
-          }
-        }
-
-        if (templateNames.length > 0) {
-          deepEqual(templateNames, [], "Ember.TEMPLATES should be empty");
-          Ember.TEMPLATES = {};
-        }
-      }
-    };
-
-   window.globalFailedTests  = [];
-      window.globalTestResults = null;
-      window.lastAssertionTime = new Date().getTime();
-
-      var currentTest, assertCount;
-
-      QUnit.testStart(function(data) {
-        // Reset the assertion count
-        assertCount = 0;
-
-        currentTest = {
-          name: data.name,
-          failedAssertions: [],
-          total: 0,
-          passed: 0,
-          failed: 0,
-          start: new Date(),
-          time: 0
-        };
-
-      })
-
-      QUnit.log(function(data) {
-        assertCount++;
-        lastAssertionTime = new Date().getTime();
-
-        // Ignore passing assertions
-        if (!data.result) {
-          currentTest.failedAssertions.push(data);
-        }
-      });
-
-      QUnit.testDone(function(data) {
-        currentTest.time = (new Date()).getTime() - currentTest.start.getTime();  // ms
-        currentTest.total = data.total;
-        currentTest.passed = data.passed;
-        currentTest.failed = data.failed;
-
-        if (currentTest.failed > 0)
-          window.globalFailedTests.push(currentTest)
-
-        currentTest = null;
-      });
-
-      QUnit.done(function( details ) {
-        details.failedTests = globalFailedTests;
-
-        window.globalTestResults = details;
-      });
+    EmberDev.assertions.noViewsRemain();
+    EmberDev.assertions.noTemplatesRemain();
+    EmberDev.assertions.noExpectedDeprecations();
+  };
 
   // hack qunit to not suck for Ember objects
   var originalTypeof = QUnit.jsDump.typeOf;
@@ -94,7 +56,6 @@
 
   // raises is deprecated, but we likely want to keep it around for our es3
   // test runs.
-  // taken from emberjs/ember-dev here: http://git.io/sQhl3A
   QUnit.constructor.prototype.raises = QUnit['throws'];
   window.raises = QUnit['throws'];
 
@@ -134,6 +95,9 @@
   // Tests should time out after 5 seconds
   QUnit.config.testTimeout = 5000;
 
+  // Hide passed tests by default
+  QUnit.config.hidepassed = true;
+
   // Handle JSHint
   QUnit.config.urlConfig.push('nojshint');
 
@@ -169,6 +133,8 @@
     };
   }());
 
+  EmberDev.runningProdBuild = !!QUnit.urlParams.prod;
+
   // A light class for stubbing
   //
   function MethodCallExpectation(target, property){
@@ -181,26 +147,33 @@
       this.sawCall = true;
       return this.originalMethod.apply(this.target, arguments);
     },
-    stubMethod: function(fn){
-      var context = this;
-      this.originalMethod = this.target[this.property];
-      this.target[this.property] = function(){
-        return context.handleCall.apply(context, arguments);
-      };
+    stubMethod: function(replacementFunc){
+      var context = this,
+          property = this.property;
+
+      this.originalMethod = this.target[property];
+
+      if (typeof replacementFunc === 'function') {
+        this.target[property] = replacementFunc;
+      } else {
+        this.target[property] = function(){
+          return context.handleCall.apply(context, arguments);
+        };
+      }
     },
     restoreMethod: function(){
       this.target[this.property] = this.originalMethod;
     },
-    runWithStub: function(fn){
+    runWithStub: function(fn, replacementFunc){
       try {
-        this.stubMethod();
+        this.stubMethod(replacementFunc);
         fn();
       } finally {
         this.restoreMethod();
       }
     },
-    assert: function(fn) {
-      this.runWithStub();
+    assert: function() {
+      this.runWithStub.apply(this, arguments);
       ok(this.sawCall, "Expected "+this.property+" to be called.");
     }
   };
@@ -253,7 +226,20 @@
   // } /* , optionalMessageStringOrRegex */);
   //
   window.expectAssertion = function expectAssertion(fn, message){
+    if (EmberDev.runningProdBuild){
+      ok(true, 'Assertions disabled in production builds.');
+      return;
+    }
+
+    // do not assert as the production builds do not contain Ember.assert
     (new AssertExpectation(message)).assert(fn);
+  };
+
+  window.ignoreAssertion = function ignoreAssertion(fn){
+    var stubber = new MethodCallExpectation(Ember, 'assert'),
+        noop = function(){};
+
+    stubber.runWithStub(fn, noop);
   };
 
   EmberDev.deprecations = {
@@ -318,6 +304,13 @@
     }
   };
 
+  window.ignoreDeprecation = function ignoreDeprecation(fn){
+    var stubber = new MethodCallExpectation(Ember, 'deprecate'),
+        noop = function(){};
+
+    stubber.runWithStub(fn, noop);
+  };
+
   // Forces an assert the deprecations occurred, and resets the globals
   // storing asserts for the next run.
   //
@@ -341,6 +334,11 @@
     EmberDev.deprecations.restoreEmber();
     EmberDev.deprecations.actuals = null;
     EmberDev.deprecations.expecteds = null;
+
+    if (EmberDev.runningProdBuild){
+      ok(true, 'deprecations disabled in production builds.');
+      return;
+    }
 
     if (expecteds === EmberDev.deprecations.NONE) {
       var actualMessages = [];
