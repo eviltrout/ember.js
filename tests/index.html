@@ -35,9 +35,9 @@
     <script src="/tests/ember_configuration.js"></script>
     <script src="/dist/ember-tests.js"></script>
     <script>
-      var packages = (QUnit.urlParams.package || "*").split(",");
+      var packages = QUnit.urlParams.package;
+      packages = (packages && packages.split(',')) || [".*"];
       var packageRegexp   = new RegExp('^('+packages.join('|')+')/');
-
 
       for (var moduleName in Ember.__loader.registry) {
         if (moduleName.match(packageRegexp) && moduleName.match(/_test$/)) {
