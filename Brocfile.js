@@ -3,6 +3,8 @@ var pickFiles = require('broccoli-static-compiler');
 var compileES6 = require('broccoli-es6-concatenator');
 var mergeTrees = require('broccoli-merge-trees');
 var defeatureify = require('broccoli-defeatureify');
+var uglifyJavaScript = require('broccoli-uglify-js');
+
  
 var configJson = JSON.parse(fs.readFileSync("features.json").toString());
 
