@@ -35,11 +35,14 @@ function moduleNameToPath(modulePath) {
 }
 
 function pathToModuleName(path) {
-  return moduleName = path
-        .replace('packages_es6/', '')
-        .replace('lib/', '')
-        .replace(/\/main$/, '')
-        .slice(0, -3);
+  var moduleName = path.slice(0,-3);
+
+  moduleName = moduleName
+                .replace('packages_es6/', '')
+                .replace('lib/', '')
+                .replace(/\/main$/, '');
+
+  return moduleName;
 }
 
 var legacyFilesToAppend = [
