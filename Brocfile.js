@@ -122,7 +122,7 @@ var packagesJs = compileES6(sourceTrees, {
   ignoredModules: [ ],
   inputFiles: [ 'packages_es6/**/lib/**/*.js' ],
   legacyFilesToAppend: legacyFilesToAppend,
-  wrapInEval: true,
+  wrapInEval: false,
   outputFile: '/dist/ember.js',
   moduleNameToPath: moduleNameToPath,
   pathToModuleName: pathToModuleName
@@ -139,6 +139,6 @@ var testsJs = compileES6(sourceTrees, {
   pathToModuleName: pathToModuleName
 });
 
-var defeaturedJs = defeatureify(mergeTrees([testsJs], {overwrite: true}), defeatureifyConfig);
+var defeaturedJs = defeatureify(mergeTrees([packagesJs, testsJs], {overwrite: true}), defeatureifyConfig);
 
 module.exports = mergeTrees([defeaturedJs, testConfig, bowerFiles]);
