@@ -20,7 +20,7 @@ import EnumerableUtils from "ember-metal/enumerable_utils";
 import ObjectController from "ember-runtime/controllers/object_controller";
 import ArrayController from "ember-runtime/controllers/array_controller";
 import EventDispatcher from "ember-views/system/event_dispatcher";
-import ContainerDebugAdapter from "ember-extension-support/container_debug_adapter";
+//import ContainerDebugAdapter from "ember-extension-support/container_debug_adapter";
 import jQuery from "ember-views/system/jquery";
 import Route from "ember-routing/system/route";
 import Router from "ember-routing/system/router";
