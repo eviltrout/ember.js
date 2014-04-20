@@ -59,28 +59,35 @@ function vendoredPackage(packageName) {
     destDir: '/' + packageName
   });
 
-  return {lib: moveFile(libTree, {
+  return  moveFile(libTree, {
     srcFile: packageName + '/main.js',
     destFile: '/' + packageName + '.js'
-  })};
+  });
 };
 
-function concatES6(sourceTrees, inputFiles, destFile) {
+function concatES6(sourceTrees, options) {
+  var loader = vendoredPackages['loader'];
+  var inputFiles = options.inputFiles;
+  var destFile = options.destFile;
+
   if (util.isArray(sourceTrees)) {
     sourceTrees = mergeTrees(sourceTrees, {overwrite: true});
   }
-
-  if (typeof inputFiles === 'string') {
-    inputFiles = [inputFiles];
-  }
-  inputFiles.unshift('loader.js');
 
   sourceTrees = transpileES6(sourceTrees, {
     moduleName: true
   });
   sourceTrees = defeatureify(sourceTrees, defeatureifyConfig());
 
-  return concat(mergeTrees([loader, sourceTrees]), {
+  var concatTrees = [loader, sourceTrees];
+  if (options.includeLoader === true) {
+    inputFiles.unshift('loader.js');
+  }
+
+  if (options.vendorTrees) { concatTrees.push(options.vendorTrees); }
+
+  return concat(mergeTrees(concatTrees), {
+    wrapInEval: options.wrapInEval,
     inputFiles: inputFiles,
     outputFile: destFile
   });
@@ -113,27 +120,28 @@ var bowerFiles = [
 
 bowerFiles = mergeTrees(bowerFiles);
 
-var loader = vendoredPackage('loader').lib;
+
+var vendoredPackages = {
+  'loader':           vendoredPackage('loader'),
+  'rsvp':             vendoredPackage('rsvp'),
+  'metamorph':        vendoredPackage('metamorph'),
+  'backburner':       vendoredPackage('backburner'),
+  'router':           vendoredPackage('router'),
+  'route-recognizer': vendoredPackage('route-recognizer'),
+};
 
 var packages = {
-  // vendored packages
-  //'loader':                     {trees: vendoredPackage('loader'),           requirements: []},
-  'rsvp':                       {trees: vendoredPackage('rsvp'),             requirements: []},
-  'metamorph':                  {trees: vendoredPackage('metamorph'),        requirements: []},
-  'backburner':                 {trees: vendoredPackage('backburner'),       requirements: []},
-  'router':                     {trees: vendoredPackage('router'),           requirements: []},
-  'route-recognizer':           {trees: vendoredPackage('route-recognizer'), requirements: []},
-
   'container':                  {trees: null,  requirements: []},
-  'ember-metal':                {trees: null,  requirements: ['backburner']},
+  'ember-metal':                {trees: null,  vendorRequirements: ['backburner']},
   'ember-debug':                {trees: null,  requirements: ['ember-metal'], skipTests: true},
-  'ember-runtime':              {trees: null,  requirements: ['container', 'rsvp', 'ember-metal']},
+  'ember-runtime':              {trees: null,  vendorRequirements: ['rsvp'], requirements: ['container', 'ember-metal']}, 
   'ember-views':                {trees: null,  requirements: ['ember-runtime']},
   'ember-extension-support':    {trees: null,  requirements: ['ember-application']},
   'ember-testing':              {trees: null,  requirements: ['ember-application', 'ember-routing']},
   'ember-handlebars-compiler':  {trees: null,  requirements: ['ember-views']},
-  'ember-handlebars':           {trees: null,  requirements: ['metamorph', 'ember-views', 'ember-handlebars-compiler']},
-  'ember-routing':              {trees: null,  requirements: ['router', 'route-recognizer', 'ember-runtime', 'ember-views', 'ember-handlebars']},
+  'ember-handlebars':           {trees: null,  vendorRequirements: ['metamorph'], requirements: ['ember-views', 'ember-handlebars-compiler']},
+  'ember-routing':              {trees: null,  vendorRequirements: ['router', 'route-recognizer'],
+                                               requirements: ['ember-runtime', 'ember-views', 'ember-handlebars']},
   'ember-application':          {trees: null,  requirements: ['ember-routing']}
 };
 
@@ -146,6 +154,7 @@ function es6Package(packageName) {
   }
 
   var dependencyTrees = packageDependencyTree(packageName);
+  var vendorTrees = packages[packageName].vendorTrees;
 
   var libTree = pickFiles('packages_es6/' + packageName + '/lib', {
     srcDir: '/',
@@ -162,19 +171,25 @@ function es6Package(packageName) {
     destDir: '/' + packageName + '/tests'
   });
 
-  var compiledLib = concatES6([dependencyTrees, libTree], '**/*.js', '/dist/' + packageName + '.js')
+  var compiledLib = concatES6([dependencyTrees, libTree], {
+    includeLoader: true,
+    vendorTrees: vendorTrees,
+    inputFiles: ['**/*.js'],
+    destFile: '/dist/' + packageName + '.js'
+  })
   var compiledTrees = [compiledLib];
 
-  var compiledTest;
-  if (!pkg.skipTests) {
-    compiledTest = concatES6(testTree, '**/*.js', '/dist/' + packageName + '-tests.js');
-
-    compiledTrees.push(compiledTest);
-  }
+  var compiledTest = concatES6(testTree, '**/*.js', '/dist/' + packageName + '-tests.js');
+  var compiledTest = concatES6(testTree, {
+    includeLoader: false,
+    inputFiles: ['**/*.js'],
+    destFile: '/dist/' + packageName + '-tests.js'
+  })
+  if (!pkg.skipTests) { compiledTrees.push(compiledTest); }
 
   compiledTrees = mergeTrees(compiledTrees);
 
-  pkg['trees'] = { lib: libTree, compiledTree: compiledTrees};
+  pkg['trees'] = { lib: libTree, compiledTree: compiledTrees, vendorTrees: vendorTrees};
   if (!pkg.skipTests) { pkg['trees'].tests = testTree; }
 
   return pkg.trees 
@@ -189,24 +204,39 @@ function packageDependencyTree(packageName) {
     dependencyTrees = [];
   }
 
-  var requiredDependencies = packages[packageName]['requirements'];
+  var requiredDependencies = packages[packageName]['requirements'] || [];
+  var vendoredDependencies = packages[packageName]['vendorRequirements'] || [];
   var libTrees = [];
+  var vendorTrees = [];
+
+  vendoredDependencies.forEach(function(dependency) {
+    vendorTrees.push(vendoredPackages[dependency]);
+  });
 
   requiredDependencies.forEach(function(dependency) {
     libTrees.concat(packageDependencyTree(dependency));
     libTrees.push(es6Package(dependency).lib);
   }, this);
 
+  packages[packageName]['vendorTrees']            = mergeTrees(vendorTrees, {overwrite: true});
   return packages[packageName]['dependencyTrees'] = mergeTrees(libTrees, {overwrite: true});
 }
 
+var vendorTrees          = [];
 var sourceTrees          = [];
 var testTrees            = [];
 var compiledPackageTrees = [];
 
 for (var packageName in packages) {
   es6Package(packageName);
-  var packagesTrees = packages[packageName]['trees'];
+  var currentPackage = packages[packageName];
+  var packagesTrees = currentPackage['trees'];
+
+  if (currentPackage['vendorRequirements']) {
+    currentPackage['vendorRequirements'].forEach(function(dependency) {
+      vendorTrees.push(vendoredPackages[dependency]);
+    });
+  }
 
   if (packagesTrees.lib) {
     sourceTrees.push(packagesTrees.lib);
@@ -222,10 +252,20 @@ for (var packageName in packages) {
 }
 
 compiledPackageTrees = mergeTrees(compiledPackageTrees);
-var compiledSource = concatES6(sourceTrees, '**/*.js', '/dist/ember.js');
-var compiledTests = concatES6(testTrees, '**/*.js', '/dist/ember-tests.js');
+vendorTrees = mergeTrees(vendorTrees);
+var compiledSource = concatES6(sourceTrees, {
+  includeLoader: true,
+  vendorTrees: vendorTrees,
+  inputFiles: ['**/*.js'],
+  destFile: '/dist/ember.js'
+});
+var compiledTests = concatES6(testTrees, {
+  includeLoader: false,
+  inputFiles: ['**/*.js'],
+  destFile: '/dist/ember-tests.js'
+});
 var distTrees = [compiledSource, compiledTests, testConfig, bowerFiles];
-distTrees.push(compiledPackageTrees);
+//distTrees.push(compiledPackageTrees);
 
 distTrees = mergeTrees(distTrees);
 
