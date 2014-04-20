@@ -142,7 +142,8 @@ var packages = {
   'ember-handlebars':           {trees: null,  vendorRequirements: ['metamorph'], requirements: ['ember-views', 'ember-handlebars-compiler']},
   'ember-routing':              {trees: null,  vendorRequirements: ['router', 'route-recognizer'],
                                                requirements: ['ember-runtime', 'ember-views', 'ember-handlebars']},
-  'ember-application':          {trees: null,  requirements: ['ember-routing']}
+  'ember-application':          {trees: null,  requirements: ['ember-routing']},
+  'ember':                      {trees: null,  requirements: ['ember-application']}
 };
 
 function es6Package(packageName) {
