@@ -20,6 +20,7 @@
     "broccoli-writer": "~0.1.1",
     "broccoli-kitchen-sink-helpers": "~0.2.0",
     "broccoli-es6-module-transpiler": "~0.1.0",
-    "broccoli-concat": "0.0.6"
+    "broccoli-concat": "0.0.6",
+    "broccoli-file-mover": "~0.1.0"
   }
 }
