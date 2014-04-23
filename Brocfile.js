@@ -9,17 +9,21 @@ var defeatureify = require('broccoli-defeatureify');
 var concat = require('broccoli-concat');
 var uglifyJavaScript = require('broccoli-uglify-js');
 var moveFile = require('broccoli-file-mover');
+var removeFile = require('broccoli-file-remover');
 
-var globalWrapInEval = false;
-
-function defeatureifyConfig(stripDebug) {
+function defeatureifyConfig(options) {
+  var stripDebug = false;
+  var options = options || {};
   var configJson = JSON.parse(fs.readFileSync("features.json").toString());
 
+  if (configJson.hasOwnProperty('stripDebug')) { stripDebug = configJson.stripDebug; }
+  if (options.hasOwnProperty('stripDebug')) { stripDebug = options.stripDebug; }
+
   return {
-    enabled: configJson.features,
-    debugStatements: configJson.debugStatements,
-    namespace: configJson.namespace,
-    enableStripDebug: stripDebug
+    enabled:           options.features || configJson.features,
+    debugStatements:   options.debugStatements || configJson.debugStatements,
+    namespace:         options.namespace || configJson.namespace,
+    enableStripDebug:  stripDebug
   };
 }
 
@@ -48,7 +52,7 @@ function concatES6(sourceTrees, options) {
   sourceTrees = transpileES6(sourceTrees, {
     moduleName: true
   });
-  sourceTrees = defeatureify(sourceTrees, defeatureifyConfig());
+  sourceTrees = defeatureify(sourceTrees, defeatureifyConfig(options.defeatureifyOptions));
 
   var concatTrees = [loader, sourceTrees];
   if (options.includeLoader === true) {
@@ -147,7 +151,7 @@ function es6Package(packageName) {
     includeLoader: true,
     vendorTrees: vendorTrees,
     inputFiles: ['**/*.js'],
-    destFile: '/dist/' + packageName + '.js'
+    destFile: '/dist/packages/' + packageName + '.js'
   })
   var compiledTrees = [compiledLib];
 
@@ -155,7 +159,7 @@ function es6Package(packageName) {
   var compiledTest = concatES6(testTree, {
     includeLoader: false,
     inputFiles: ['**/*.js'],
-    destFile: '/dist/' + packageName + '-tests.js'
+    destFile: '/dist/packages/' + packageName + '-tests.js'
   })
   if (!pkg.skipTests) { compiledTrees.push(compiledTest); }
 
@@ -225,19 +229,40 @@ for (var packageName in packages) {
 
 compiledPackageTrees = mergeTrees(compiledPackageTrees);
 vendorTrees = mergeTrees(vendorTrees);
+sourceTrees = mergeTrees(sourceTrees);
+
 var compiledSource = concatES6(sourceTrees, {
   includeLoader: true,
   vendorTrees: vendorTrees,
   inputFiles: ['**/*.js'],
   destFile: '/dist/ember.js'
 });
+
+var prodCompiledSource = removeFile(sourceTrees, {
+  srcFile: 'ember-debug.js',
+});
+
+prodCompiledSource = concatES6(prodCompiledSource, {
+  includeLoader: true,
+  vendorTrees: vendorTrees,
+  inputFiles: ['**/*.js'],
+  destFile: '/dist/ember.prod.js',
+  defeatureifyOptions: {stripDebug: true}
+});
+
+var minCompiledSource = moveFile(prodCompiledSource, {
+  srcFile: 'dist/ember.prod.js',
+  destFile: 'dist/ember.min.js',
+});
+minCompiledSource = uglifyJavaScript(minCompiledSource);
+
 var compiledTests = concatES6(testTrees, {
   includeLoader: false,
   inputFiles: ['**/*.js'],
   destFile: '/dist/ember-tests.js'
 });
-var distTrees = [compiledSource, compiledTests, testConfig, bowerFiles];
-//distTrees.push(compiledPackageTrees);
+var distTrees = [compiledSource, prodCompiledSource, minCompiledSource, compiledTests, testConfig, bowerFiles];
+distTrees.push(compiledPackageTrees);
 
 distTrees = mergeTrees(distTrees);
 
