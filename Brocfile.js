@@ -10,60 +10,44 @@ var concat = require('broccoli-concat');
 var uglifyJavaScript = require('broccoli-uglify-js');
 var moveFile = require('broccoli-file-mover');
 var removeFile = require('broccoli-file-remover');
+var exportTree = require('broccoli-export-tree');
+var jshintTree = require('broccoli-jshint');
 
 var env = process.env.BROCCOLI_ENV || 'test';
 
 var Writer = require('broccoli-writer');
 var helpers = require('broccoli-kitchen-sink-helpers')
 
-function createTemplateCompiler() {
- /** 
-      out = "(function() {\nvar Ember = { assert: function() {}, FEATURES: { isEnabled: function() {} } };\n"
-      out << File.read('packages_es6/ember-handlebars-compiler/lib/main.js')
+EmberTemplateCompilerGenerator.prototype = Object.create(Writer.prototype);
+EmberTemplateCompilerGenerator.prototype.constructor = EmberTemplateCompilerGenerator;
+function EmberTemplateCompilerGenerator (inputTree, options) {
+  if (!(this instanceof EmberTemplateCompilerGenerator)) return new EmberTemplateCompilerGenerator(inputTree, options);
 
-      out.gsub!('import Ember from "ember-metal/core";', '')
-      out.gsub!('export default EmberHandlebars;', '')
-
-      out << "\nexports.precompile = EmberHandlebars.precompile;"
-      out << "\nexports.EmberHandlebars = EmberHandlebars;"
-      out << "\n})();"
-      output.write out
-  */
-
- var output = '(function() {\nvar Ember = { assert: function() {}, FEATURES: { isEnabled: function() {} } };\n';
- output += fs.readFileSync('packages_es6/ember-handlebars-compiler/lib/main.js', {encoding: 'utf8'});
-
- output = output.replace('import Ember from "ember-metal/core";', '');
- output = output.replace('export default EmberHandlebars;', '');
-
- output += '\nexports.precompile = EmberHandlebars.precompile;';
- output += '\nexports.EmberHandlebars = EmberHandlebars;';
- output += '\n})();';
-
- if (!fs.existsSync('tmp')) { fs.mkdirSync('tmp'); }
- fs.writeFileSync('tmp/ember-template-compiler.js', output);
-
- return require('./tmp/ember-template-compiler');
-}
-
-debugger;
-DefaultTemplateCompiler.prototype = Object.create(Writer.prototype);
-DefaultTemplateCompiler.prototype.constructor = DefaultTemplateCompiler;
-function DefaultTemplateCompiler (inputTree, options) {
-  if (!(this instanceof DefaultTemplateCompiler)) return new DefaultTemplateCompiler(inputTree, options);
-
+  options = options || {};
   this.inputTree = inputTree;
-  this.srcFile   = options.srcFile;
-  this.destFile  = options.destFile;
+  this.srcFile   = options.srcFile || 'ember-handlebars-compiler.js';
+  this.destFile  = options.destFile || 'ember-template-compiler.js';
 };
 
-DefaultTemplateCompiler.prototype.write = function (readTree, destDir) {
+EmberTemplateCompilerGenerator.prototype.write = function (readTree, destDir) {
   var self = this
 
   return readTree(this.inputTree).then(function (srcDir) {
-    helpers.copyRecursivelySync(srcDir, destDir);
+    var output = '(function() {\nvar Ember = { assert: function() {}, FEATURES: { isEnabled: function() {} } };\n';
+    output += fs.readFileSync(path.join(srcDir, self.srcFile), {encoding: 'utf8'});
+
+    output = output.replace('import Ember from "ember-metal/core";', '');
+    output = output.replace('export default EmberHandlebars;', '');
+
+    output += '\nexports.precompile = EmberHandlebars.precompile;';
+    output += '\nexports.EmberHandlebars = EmberHandlebars;';
+    output += '\n})();';
+
+    fs.writeFileSync(path.join(destDir, 'ember-template-compiler.js'), output);
   })
 };
+
+var generateTemplateCompiler = EmberTemplateCompilerGenerator;
 
 function defeatureifyConfig(options) {
   var stripDebug = false;
@@ -205,15 +189,15 @@ function es6Package(packageName) {
     includeLoader: true,
     vendorTrees: vendorTrees,
     inputFiles: ['**/*.js'],
-    destFile: '/dist/packages/' + packageName + '.js'
+    destFile: '/packages/' + packageName + '.js'
   })
   var compiledTrees = [compiledLib];
 
-  var compiledTest = concatES6(testTree, '**/*.js', '/dist/' + packageName + '-tests.js');
+  var compiledTest = concatES6(testTree, '**/*.js', '/' + packageName + '-tests.js');
   var compiledTest = concatES6(testTree, {
     includeLoader: false,
     inputFiles: ['**/*.js'],
-    destFile: '/dist/packages/' + packageName + '-tests.js'
+    destFile: '/packages/' + packageName + '-tests.js'
   })
   if (!pkg.skipTests) { compiledTrees.push(compiledTest); }
 
@@ -285,11 +269,13 @@ compiledPackageTrees = mergeTrees(compiledPackageTrees);
 vendorTrees = mergeTrees(vendorTrees);
 sourceTrees = mergeTrees(sourceTrees);
 
+var jshintSourceTree = jshintTree(sourceTrees);
+
 var compiledSource = concatES6(sourceTrees, {
   includeLoader: true,
   vendorTrees: vendorTrees,
   inputFiles: ['**/*.js'],
-  destFile: '/dist/ember.js'
+  destFile: '/ember.js'
 });
 
 var prodCompiledSource = removeFile(sourceTrees, {
@@ -300,22 +286,25 @@ prodCompiledSource = concatES6(prodCompiledSource, {
   includeLoader: true,
   vendorTrees: vendorTrees,
   inputFiles: ['**/*.js'],
-  destFile: '/dist/ember.prod.js',
+  destFile: '/ember.prod.js',
   defeatureifyOptions: {stripDebug: true}
 });
 
 var minCompiledSource = moveFile(prodCompiledSource, {
-  srcFile: 'dist/ember.prod.js',
-  destFile: 'dist/ember.min.js',
+  srcFile: 'ember.prod.js',
+  destFile: 'ember.min.js',
 });
 minCompiledSource = uglifyJavaScript(minCompiledSource);
 
 var compiledTests = concatES6(testTrees, {
   includeLoader: false,
   inputFiles: ['**/*.js'],
-  destFile: '/dist/ember-tests.js'
+  destFile: '/ember-tests.js'
 });
-var distTrees = [compiledSource, compiledTests, testConfig, bowerFiles];
+
+var templateCompilerTree = generateTemplateCompiler(sourceTrees);
+
+var distTrees = [jshintSourceTree, templateCompilerTree, compiledSource, compiledTests, testConfig, bowerFiles];
 
 if (env !== 'test') {
   distTrees.push(prodCompiledSource);
@@ -325,4 +314,8 @@ if (env !== 'test') {
 
 distTrees = mergeTrees(distTrees);
 
-module.exports = distTrees;
+var distExportTree = exportTree(distTrees, {
+  destDir: 'dist'
+});
+
+module.exports = mergeTrees([distTrees, distExportTree]);
