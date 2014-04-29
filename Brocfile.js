@@ -170,7 +170,7 @@ function es6Package(packageName) {
   var dependencyTrees = packageDependencyTree(packageName);
   var vendorTrees = packages[packageName].vendorTrees;
 
-  var libTree = pickFiles('packages_es6/' + packageName + '/lib', {
+  libTree = pickFiles('packages_es6/' + packageName + '/lib', {
     srcDir: '/',
     destDir: packageName
   });
@@ -180,10 +180,20 @@ function es6Package(packageName) {
     destFile: packageName + '.js'
   });
 
+  var libJSHintTree = jshintTree(libTree, {
+    destFile: '/' + packageName + '/tests/lib-jshint.js'
+  });
+
   var testTree = pickFiles('packages_es6/' + packageName + '/tests', {
     srcDir: '/',
     destDir: '/' + packageName + '/tests'
   });
+
+  var testJSHintTree = jshintTree(testTree, {
+    destFile: '/' + packageName + '/tests/tests-jshint.js'
+  });
+
+  var testTrees = mergeTrees([testTree, libJSHintTree, testJSHintTree]);
 
   var compiledLib = concatES6([dependencyTrees, libTree], {
     includeLoader: true,
@@ -193,8 +203,7 @@ function es6Package(packageName) {
   })
   var compiledTrees = [compiledLib];
 
-  var compiledTest = concatES6(testTree, '**/*.js', '/' + packageName + '-tests.js');
-  var compiledTest = concatES6(testTree, {
+  var compiledTest = concatES6(testTrees, {
     includeLoader: false,
     inputFiles: ['**/*.js'],
     destFile: '/packages/' + packageName + '-tests.js'
@@ -204,7 +213,7 @@ function es6Package(packageName) {
   compiledTrees = mergeTrees(compiledTrees);
 
   pkg['trees'] = { lib: libTree, compiledTree: compiledTrees, vendorTrees: vendorTrees};
-  if (!pkg.skipTests) { pkg['trees'].tests = testTree; }
+  if (!pkg.skipTests) { pkg['trees'].tests = testTrees; }
 
   return pkg.trees 
 }
@@ -268,8 +277,7 @@ for (var packageName in packages) {
 compiledPackageTrees = mergeTrees(compiledPackageTrees);
 vendorTrees = mergeTrees(vendorTrees);
 sourceTrees = mergeTrees(sourceTrees);
-
-var jshintSourceTree = jshintTree(sourceTrees);
+testTrees   = mergeTrees(testTrees);
 
 var compiledSource = concatES6(sourceTrees, {
   includeLoader: true,
@@ -304,7 +312,7 @@ var compiledTests = concatES6(testTrees, {
 
 var templateCompilerTree = generateTemplateCompiler(sourceTrees);
 
-var distTrees = [jshintSourceTree, templateCompilerTree, compiledSource, compiledTests, testConfig, bowerFiles];
+var distTrees = [templateCompilerTree, compiledSource, compiledTests, testConfig, bowerFiles];
 
 if (env !== 'test') {
   distTrees.push(prodCompiledSource);
