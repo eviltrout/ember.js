@@ -330,7 +330,7 @@ if (env !== 'test') {
 distTrees = mergeTrees(distTrees);
 
 var distExportTree = exportTree(distTrees, {
-  destDir: 'dist'
+  destDir: 'live-dist'
 });
 
 module.exports = mergeTrees([distTrees, distExportTree]);
