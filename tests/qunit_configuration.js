@@ -98,6 +98,13 @@
   // Hide passed tests by default
   QUnit.config.hidepassed = true;
 
+  // Handle testing feature flags
+  QUnit.config.urlConfig.push({ id: 'enableoptionalfeatures', label: "Enable Opt Features"});
+
+  // Handle extending prototypes
+  QUnit.config.urlConfig.push({ id: 'extendprototypes', label: 'Extend Prototypes'});
+
+
   // Handle JSHint
   QUnit.config.urlConfig.push('nojshint');
 

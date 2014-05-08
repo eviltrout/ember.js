@@ -2,7 +2,6 @@ var fs  = require('fs');
 var util = require('util');
 var path = require('path');
 var pickFiles = require('broccoli-static-compiler');
-//var compileES6 = require('broccoli-es6-concatenator');
 var transpileES6 = require('broccoli-es6-module-transpiler');
 var mergeTrees = require('broccoli-merge-trees');
 var defeatureify = require('broccoli-defeatureify');
@@ -12,6 +11,7 @@ var moveFile = require('broccoli-file-mover');
 var removeFile = require('broccoli-file-remover');
 var exportTree = require('broccoli-export-tree');
 var jshintTree = require('broccoli-jshint');
+var replace = require('broccoli-replace');
 
 var env = process.env.BROCCOLI_ENV || 'test';
 
@@ -110,6 +110,13 @@ var testConfig = pickFiles('tests', {
   srcDir: '/',
   files: ['**/*.*'],
   destDir: '/tests'
+});
+
+testConfig = replace(testConfig, {
+  files: [ 'tests/ember_configuration.js' ],
+  patterns: [
+    { match: /\{\{FEATURES\}\}/g, replacement: JSON.stringify(defeatureifyConfig().enabled) }
+  ]
 });
 
 var bowerFiles = [
