@@ -2,7 +2,8 @@
   "name": "ember",
   "license": "MIT",
   "scripts": {
-    "postinstall": "bower install"
+    "postinstall": "bower install",
+    "build": "broccoli build dist"
   },
   "devDependencies": {
     "defeatureify": "~0.2.0",
@@ -24,6 +25,9 @@
     "broccoli-file-mover": "~0.2.0",
     "broccoli-file-remover": "~0.2.0",
     "broccoli-export-tree": "~0.3.0",
-    "broccoli-jshint": "~0.4.0"
+    "broccoli-jshint": "~0.4.0",
+    "rsvp": "~3.0.6",
+    "chalk": "~0.4.0",
+    "broccoli-cli": "0.0.1"
   }
 }
