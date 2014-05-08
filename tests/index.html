@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8">
     <title>Ember</title>
-    <link rel="stylesheet" href="/qunit/qunit.css">
-    <script src="/qunit/qunit.js"></script>
-    <script src="/handlebars/handlebars.js"></script>
+    <link rel="stylesheet" href="../qunit/qunit.css">
+    <script src="../qunit/qunit.js"></script>
+    <script src="../handlebars/handlebars.js"></script>
 
     <script type="text/javascript">
       window.loadScript = function(url) {
@@ -13,7 +13,7 @@
       };
     </script>
 
-    <script src="/tests/qunit_configuration.js"></script>
+    <script src="./qunit_configuration.js"></script>
 
     <script type="text/javascript">
       // Load custom version of jQuery if possible (assign to window so IE8 can use in later blocks)
@@ -27,14 +27,14 @@
     <script type="text/javascript">
       // Fallback to default jQuery
       if (jQueryVersion !== 'none' && !window.jQuery) {
-        loadScript('/jquery/jquery.js');
+        loadScript('../jquery/jquery.js');
       }
       // Close the script tag to make sure document.write happens
     </script>
 
-    <script src="/tests/ember_configuration.js"></script>
-    <script src="/ember.js"></script>
-    <script src="/ember-tests.js"></script>
+    <script src="./ember_configuration.js"></script>
+    <script src="../ember.js"></script>
+    <script src="../ember-tests.js"></script>
     <script>
       var packages = QUnit.urlParams.package;
       packages = (packages && packages.split(',')) || [".*"];
