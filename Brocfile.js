@@ -7,6 +7,7 @@ var mergeTrees = require('broccoli-merge-trees');
 var defeatureify = require('broccoli-defeatureify');
 var concat = require('broccoli-concat');
 var uglifyJavaScript = require('broccoli-uglify-js');
+var writeFile = require('broccoli-file-creator');
 var moveFile = require('broccoli-file-mover');
 var removeFile = require('broccoli-file-remover');
 var exportTree = require('broccoli-export-tree');
@@ -94,9 +95,15 @@ function concatES6(sourceTrees, options) {
   });
   sourceTrees = defeatureify(sourceTrees, defeatureifyConfig(options.defeatureifyOptions));
 
-  var concatTrees = [loader, 'generators', sourceTrees];
+  var concatTrees = [loader, 'generators', iifeStart, iifeStop, sourceTrees];
   if (options.includeLoader === true) {
     inputFiles.unshift('loader.js');
+  }
+
+  // do not modify inputFiles after here (otherwise IIFE will be messed up)
+  if (options.wrapInIIFE !== false) {
+    inputFiles.unshift('iife-start');
+    inputFiles.push('iife-stop');
   }
 
   if (options.includeLicense !== false) {
@@ -145,6 +152,9 @@ var bowerFiles = [
 ];
 
 bowerFiles = mergeTrees(bowerFiles);
+
+var iifeStart = writeFile('iife-start', '(function() {');
+var iifeStop  = writeFile('iife-stop', '})();');
 
 var vendoredPackages = {
   'loader':           vendoredPackage('loader'),

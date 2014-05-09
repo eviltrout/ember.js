@@ -29,6 +29,7 @@
     "broccoli-jshint": "~0.4.0",
     "rsvp": "~3.0.6",
     "chalk": "~0.4.0",
-    "broccoli-cli": "0.0.1"
+    "broccoli-cli": "0.0.1",
+    "broccoli-file-creator": "~0.1.0"
   }
 }
