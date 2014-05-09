@@ -312,7 +312,7 @@ var distTrees = [templateCompilerTree, compiledSource, compiledTests, testConfig
 if (env !== 'test') {
   distTrees.push(prodCompiledSource);
   distTrees.push(minCompiledSource);
-  distTrees.push(compiledPackageTrees);
+  //distTrees.push(compiledPackageTrees);
 }
 
 distTrees = mergeTrees(distTrees);

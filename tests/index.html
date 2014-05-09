@@ -33,16 +33,29 @@
     </script>
 
     <script src="./ember_configuration.js"></script>
-    <script src="../ember.js"></script>
+    <script>
+      var dist = QUnit.urlParams.dist;
+
+      if (dist) {
+        loadScript('../ember.' + dist + '.js');
+      } else {
+        loadScript('../ember.js');
+      }
+    </script>
+
     <script src="../ember-tests.js"></script>
     <script>
-      var packages = QUnit.urlParams.package;
+      var packages     = QUnit.urlParams.package;
       packages = (packages && packages.split(',')) || [".*"];
       var packageRegexp   = new RegExp('^('+packages.join('|')+')/');
 
-      for (var moduleName in Ember.__loader.registry) {
-        if (!moduleName.match(packageRegexp)) { continue; }
+      var skipPackages = QUnit.urlParams.skipPackage;
+      skipPackages = (skipPackages && skipPackages.split(',')) || [];
+      var skipPackageRegexp   = new RegExp('^('+skipPackages.join('|')+')/');
 
+      for (var moduleName in Ember.__loader.registry) {
+        if (!moduleName.match(packageRegexp))   { continue; }
+        if (moduleName.match(skipPackageRegexp)) { continue; }
 
         if (moduleName.match(/[_-]test$/)) { requireModule(moduleName); }
         if (!QUnit.urlParams.nojshint && moduleName.match(/[-_]jshint$/)) { requireModule(moduleName); }

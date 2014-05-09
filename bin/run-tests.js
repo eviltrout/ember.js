@@ -36,7 +36,7 @@ function run(queryString) {
       var lines = string.split('\n');
 
       lines.forEach(function(line) {
-        if (line.indexOf('0 failed.')) {
+        if (line.indexOf('0 failed.') > -1) {
           console.log(chalk.green(line));
         } else {
           console.log(line);
@@ -79,6 +79,58 @@ function generateEachPackageTests() {
       return run('package=' + packageName + '&enableoptionalfeatures=true')
     });
   });
+}
+
+function generateBuiltTests() {
+  // container isn't publicly available
+  // ember-testing is stripped from prod/min
+  testFunctions.push(function() {
+    return run('skipPackage=container,ember-testing&nojshint=true');
+  });
+  testFunctions.push(function() {
+    return run('skipPackage=container,ember-testing&dist=min&prod=true');
+  });
+  testFunctions.push(function() {
+    return run('skipPackage=container,ember-testing&dist=prod&prod=true');
+  });
+}
+
+function generateOldJQueryTests() {
+  testFunctions.push(function() {
+    return run('jquery=1.7.2&nojshint=true');
+  });
+  testFunctions.push(function() {
+    return run('jquery=1.7.2&nojshint=true&enableoptionalfeatures=true');
+  });
+}
+
+function generateExtendPrototypeTests() {
+  testFunctions.push(function() {
+    return run('extendprototypes=true&nojshint=true');
+  });
+  testFunctions.push(function() {
+    return run('extendprototypes=true&nojshint=true&enableoptionalfeatures=true');
+  });
+}
+
+switch (process.env.TEST_SUITE) {
+  case 'built-tests':
+    generateBuiltTests();
+    break;
+  case 'old-jquery':
+    generateOldJQueryTests();
+    break;
+  case 'extend-prototypes':
+    generateExtendPrototypeTests();
+    break;
+  case 'all':
+    generateBuiltTests();
+    generateOldJQueryTests();
+    generateExtendPrototypeTests();
+    generateEachPackageTests();
+    break;
+  default:
+    generateEachPackageTests();
 }
 
 runInSequence(testFunctions)

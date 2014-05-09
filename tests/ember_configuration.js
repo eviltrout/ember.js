@@ -28,14 +28,4 @@
     // jsHint makes its own Object.create stub, we don't want to use this
     ENV['STUB_OBJECT_CREATE'] = !Object.create;
   }
-
-  EmberDev.distros = {
-    spade:   'ember-spade.js',
-    build:   'ember.js',
-    prod:    'ember.prod.js',
-    runtime: 'ember-runtime.js',
-    min:     'ember.min.js'
-  };
-
-
 })();
