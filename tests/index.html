@@ -57,8 +57,8 @@
         if (!moduleName.match(packageRegexp))   { continue; }
         if (moduleName.match(skipPackageRegexp)) { continue; }
 
-        if (moduleName.match(/[_-]test$/)) { requireModule(moduleName); }
-        if (!QUnit.urlParams.nojshint && moduleName.match(/[-_]jshint$/)) { requireModule(moduleName); }
+        if (moduleName.match(/[_-]test$/)) { Ember.__loader.require(moduleName); }
+        if (!QUnit.urlParams.nojshint && moduleName.match(/[-_]jshint$/)) { Ember.__loader.require(moduleName); }
       }
     </script>
   </head>

@@ -313,7 +313,7 @@ var minCompiledSource = moveFile(prodCompiledSource, {
 minCompiledSource = uglifyJavaScript(minCompiledSource);
 
 var compiledTests = concatES6(testTrees, {
-  includeLoader: false,
+  includeLoader: true,
   inputFiles: ['**/*.js'],
   destFile: '/ember-tests.js'
 });
