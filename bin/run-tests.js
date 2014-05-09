@@ -4,6 +4,8 @@ var RSVP  = require('rsvp');
 var spawn = require('child_process').spawn;
 var chalk = require('chalk');
 var packages = require('../lib/packages');
+var runInSequence = require('../lib/runInSequence');
+
 
 function shouldPrint(inputString) {
   var skipStrings = [
@@ -64,31 +66,22 @@ function run(queryString) {
   });
 }
 
-function runInSequence(tasks) {
-  var length = tasks.length;
-  var current = RSVP.Promise.resolve();
-  var results = new Array(length);
+var testFunctions = [];
 
-  for (var i = 0; i < length; ++i) {
-    current = results[i] = current.then(tasks[i]);
-  }
+function generateEachPackageTests() {
+  Object.keys(packages).forEach(function(packageName) {
+    if (packages[packageName].skipTests) { return; }
 
-  return RSVP.Promise.all(results);
-};
-
-var packageFunctions = [];
-Object.keys(packages).forEach(function(packageName) {
-  if (packages[packageName].skipTests) { return; }
-
-  packageFunctions.push(function() {
-    return run('package=' + packageName);
+    testFunctions.push(function() {
+      return run('package=' + packageName);
+    });
+    testFunctions.push(function() {
+      return run('package=' + packageName + '&enableoptionalfeatures=true')
+    });
   });
-  packageFunctions.push(function() {
-    return run('package=' + packageName + '&enableoptionalfeatures=true')
-  });
-});
+}
 
-runInSequence(packageFunctions)
+runInSequence(testFunctions)
   .then(function() {
     console.log(chalk.green('Passed!'));
     process.exit(0);
