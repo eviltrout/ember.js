@@ -100,6 +100,12 @@ function concatES6(sourceTrees, options) {
     inputFiles.unshift('loader.js');
   }
 
+  if (options.bootstrapModule) {
+    var bootstrapTree = writeFile('bootstrap', 'requireModule("' + options.bootstrapModule + '");\n');
+    concatTrees.push(bootstrapTree);
+    inputFiles.push('bootstrap');
+  }
+
   // do not modify inputFiles after here (otherwise IIFE will be messed up)
   if (options.wrapInIIFE !== false) {
     inputFiles.unshift('iife-start');
@@ -289,6 +295,7 @@ testTrees   = mergeTrees(testTrees);
 
 var compiledSource = concatES6(sourceTrees, {
   includeLoader: true,
+  bootstrapModule: 'ember',
   vendorTrees: vendorTrees,
   inputFiles: ['**/*.js'],
   destFile: '/ember.js'
@@ -300,6 +307,7 @@ var prodCompiledSource = removeFile(sourceTrees, {
 
 prodCompiledSource = concatES6(prodCompiledSource, {
   includeLoader: true,
+  bootstrapModule: 'ember',
   vendorTrees: vendorTrees,
   inputFiles: ['**/*.js'],
   destFile: '/ember.prod.js',
