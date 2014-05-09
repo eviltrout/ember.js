@@ -49,3 +49,4 @@ bundle/
 *~
 publish_to_bower/
 bower_components/
+live-dist/
