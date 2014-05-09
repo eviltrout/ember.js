@@ -3,24 +3,53 @@
 var RSVP  = require('rsvp');
 var spawn = require('child_process').spawn;
 var chalk = require('chalk');
+var packages = require('../lib/packages');
+
+function shouldPrint(inputString) {
+  var skipStrings = [
+    "*** WARNING: Method userSpaceScaleFactor",
+    "CoreText performance note:",
+  ]
+
+  for (var i = 0; i < skipStrings.length; i++) {
+    if (inputString.indexOf(skipStrings[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 function run(queryString) {
   return new RSVP.Promise(function(resolve, reject) {
-    var child = spawn('phantomjs', ['bin/qunit-runner.js', './live-dist/tests/index.html?' + queryString]);
+    var args = ['bin/qunit-runner.js', './live-dist/tests/index.html?' + queryString];
+
+    console.log('Running: phantomjs ' + args.join(' '));
+
+    var child = spawn('phantomjs', args);
     var result = {output: [], errors: [], code: null};
 
     child.stdout.on('data', function (data) {
       var string = data.toString();
+      var lines = string.split('\n');
 
+      lines.forEach(function(line) {
+        if (line.indexOf('0 failed.')) {
+          console.log(chalk.green(line));
+        } else {
+          console.log(line);
+        }
+      });
       result.output.push(string);
-      console.log(string);
     });
 
     child.stderr.on('data', function (data) {
       var string = data.toString();
 
-      result.errors.push(string);
-      console.error(chalk.red(string));
+      if (shouldPrint(string)) {
+        result.errors.push(string);
+        console.error(chalk.red(string));
+      }
     });
 
     child.on('close', function (code) {
@@ -47,11 +76,10 @@ function runInSequence(tasks) {
   return RSVP.Promise.all(results);
 };
 
-var packages = ['container', 'ember-metal', 'ember-runtime', 'ember-views', 'ember-handlebars', 'ember-handlebars-compiler',
-  'ember-routing', 'ember-application', 'ember', 'ember-extension-support', 'ember-testing'];
-
 var packageFunctions = [];
-packages.forEach(function(packageName) {
+Object.keys(packages).forEach(function(packageName) {
+  if (packages[packageName].skipTests) { return; }
+
   packageFunctions.push(function() {
     return run('package=' + packageName);
   });
