@@ -13,6 +13,8 @@ var exportTree = require('broccoli-export-tree');
 var jshintTree = require('broccoli-jshint');
 var replace = require('broccoli-replace');
 
+var calculateVersion = require('./lib/calculate-version');
+
 var env = process.env.BROCCOLI_ENV || 'test';
 
 var Writer = require('broccoli-writer');
@@ -314,6 +316,13 @@ if (env !== 'test') {
 }
 
 distTrees = mergeTrees(distTrees);
+distTrees = replace(distTrees, {
+  files: [ '**/*.js' ],
+  patterns: [
+    { match: /VERSION_STRING_PLACEHOLDER/g, replacement: calculateVersion }
+  ]
+});
+
 
 var distExportTree = exportTree(distTrees, {
   destDir: 'live-dist'
