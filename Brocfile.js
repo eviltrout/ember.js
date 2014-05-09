@@ -94,9 +94,13 @@ function concatES6(sourceTrees, options) {
   });
   sourceTrees = defeatureify(sourceTrees, defeatureifyConfig(options.defeatureifyOptions));
 
-  var concatTrees = [loader, sourceTrees];
+  var concatTrees = [loader, 'generators', sourceTrees];
   if (options.includeLoader === true) {
     inputFiles.unshift('loader.js');
+  }
+
+  if (options.includeLicense !== false) {
+    inputFiles.unshift('license.js');
   }
 
   if (options.vendorTrees) { concatTrees.push(options.vendorTrees); }
@@ -141,7 +145,6 @@ var bowerFiles = [
 ];
 
 bowerFiles = mergeTrees(bowerFiles);
-
 
 var vendoredPackages = {
   'loader':           vendoredPackage('loader'),
