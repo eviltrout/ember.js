@@ -4,7 +4,8 @@
   "version": "1.7.0-beta.1+canary",
   "scripts": {
     "postinstall": "bower install",
-    "build": "broccoli build dist"
+    "build": "broccoli build dist",
+    "test": "bin/run-tests.js"
   },
   "devDependencies": {
     "defeatureify": "~0.2.0",
