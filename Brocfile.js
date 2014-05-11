@@ -19,6 +19,7 @@ var calculateVersion = require('./lib/calculate-version');
 var env = process.env.BROCCOLI_ENV || 'test';
 
 var generateTemplateCompiler = require('./lib/broccoli-ember-template-compiler-generator');
+var inlineTemplatePrecompiler = require('./lib/broccoli-ember-inline-template-precompiler');
 
 function defeatureifyConfig(options) {
   var stripDebug = false;
@@ -139,6 +140,13 @@ var vendoredPackages = {
   'route-recognizer': vendoredPackage('route-recognizer'),
 };
 
+var emberHandlebarsCompiler = pickFiles('packages_es6/ember-handlebars-compiler/lib', {
+  files: ['main.js'],
+  srcDir: '/',
+  destDir: '/'
+});
+var templateCompilerTree = generateTemplateCompiler(emberHandlebarsCompiler, { srcFile: 'main.js'});
+
 var packages = require('./lib/packages');
 
 function es6Package(packageName) {
@@ -162,6 +170,12 @@ function es6Package(packageName) {
     destFile: packageName + '.js'
   });
 
+  libTree = mergeTrees([libTree, templateCompilerTree]);
+  libTree = inlineTemplatePrecompiler(libTree);
+  libTree = removeFile(libTree, {
+    srcFile: 'ember-template-compiler.js'
+  });
+
   var libJSHintTree = jshintTree(libTree, {
     destFile: '/' + packageName + '/tests/lib-jshint.js'
   });
@@ -180,7 +194,7 @@ function es6Package(packageName) {
   var compiledLib = concatES6([dependencyTrees, libTree], {
     includeLoader: true,
     vendorTrees: vendorTrees,
-    inputFiles: ['**/*.js'],
+    inputFiles: [packageName + '/**/*.js', packageName + '.js'],
     destFile: '/packages/' + packageName + '.js'
   })
   var compiledTrees = [compiledLib];
@@ -194,10 +208,10 @@ function es6Package(packageName) {
 
   compiledTrees = mergeTrees(compiledTrees);
 
-  pkg['trees'] = { lib: libTree, compiledTree: compiledTrees, vendorTrees: vendorTrees};
+  pkg['trees'] = {lib: libTree, compiledTree: compiledTrees, vendorTrees: vendorTrees};
   if (!pkg.skipTests) { pkg['trees'].tests = testTrees; }
 
-  return pkg.trees 
+  return pkg.trees;
 }
 
 function packageDependencyTree(packageName) {
@@ -293,8 +307,6 @@ var compiledTests = concatES6(testTrees, {
   inputFiles: ['**/*.js'],
   destFile: '/ember-tests.js'
 });
-
-var templateCompilerTree = generateTemplateCompiler(sourceTrees);
 
 var distTrees = [templateCompilerTree, compiledSource, compiledTests, testConfig, bowerFiles];
 
