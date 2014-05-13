@@ -62,7 +62,7 @@ function concatES6(sourceTrees, options) {
   sourceTrees = transpileES6(sourceTrees, {
     moduleName: true
   });
-  sourceTrees = defeatureify(sourceTrees, defeatureifyConfig(options.defeatureifyOptions));
+  // sourceTrees = defeatureify(sourceTrees, defeatureifyConfig(options.defeatureifyOptions));
 
   var concatTrees = [loader, 'generators', iifeStart, iifeStop, sourceTrees];
   if (options.includeLoader === true) {
@@ -194,7 +194,7 @@ function es6Package(packageName) {
     destFile: '/' + packageName + '/tests/tests-jshint.js'
   });
 
-  var testTrees = mergeTrees([testTree, libJSHintTree, testJSHintTree]);
+  var testTrees = mergeTrees([testTree /*, libJSHintTree, testJSHintTree*/]);
 
   var compiledLib = concatES6([dependencyTrees, libTree], {
     includeLoader: true,
